@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Critter Finder — Field Notebook</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&family=Andika:wght@400;700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#17332E;
+  --paper:#FAF3E0;
+  --paper-2:#F2E7C9;
+  --moss:#2E7D5B;
+  --sun:#F5B916;
+  --berry:#C8447A;
+  --line:#CFC0A0;
+  --shadow:0 4px 0 #17332E;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--ink);
+  background-image:
+    radial-gradient(circle at 12% 18%, rgba(46,125,91,.35), transparent 45%),
+    radial-gradient(circle at 88% 82%, rgba(245,185,22,.18), transparent 45%);
+  font-family:'Andika',Verdana,'Segoe UI',system-ui,sans-serif;
+  color:var(--ink);
+  min-height:100vh;
+  padding:14px 12px 40px;
+  -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1000px;margin:0 auto}
+
+/* ---------- notebook shell ---------- */
+.book{
+  background:var(--paper);
+  border:4px solid var(--ink);
+  border-radius:22px;
+  box-shadow:0 10px 0 rgba(0,0,0,.35);
+  overflow:hidden;
+}
+.top{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px;
+  background:var(--moss);
+  border-bottom:4px solid var(--ink);
+}
+.badge{
+  font-family:'Baloo 2','Trebuchet MS',Verdana,system-ui,sans-serif;font-weight:800;
+  font-size:clamp(20px,5vw,30px);
+  color:var(--paper);line-height:1;letter-spacing:.5px;
+}
+.badge span{display:block;font-family:'Courier Prime','Courier New',monospace;font-weight:700;
+  font-size:11px;letter-spacing:2px;color:var(--sun);margin-top:3px}
+.top .spacer{flex:1}
+.reset{
+  font-family:'Baloo 2','Trebuchet MS',Verdana,system-ui,sans-serif;font-weight:800;font-size:16px;
+  background:var(--sun);color:var(--ink);
+  border:3px solid var(--ink);border-radius:14px;
+  padding:9px 14px;cursor:pointer;box-shadow:0 4px 0 var(--ink);
+  min-height:48px;
+}
+.reset:active{transform:translateY(4px);box-shadow:none}
+
+/* ---------- tab strip = the notebook's 7 pages ---------- */
+.tabs{
+  display:flex;gap:6px;padding:10px 12px;
+  background:var(--paper-2);border-bottom:3px dashed var(--line);
+  overflow-x:auto;scrollbar-width:none;
+}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  flex:0 0 auto;min-width:76px;
+  background:var(--paper);border:2px solid var(--line);border-radius:10px;
+  padding:6px 8px;text-align:center;
+}
+.tab.done{border-color:var(--moss);background:#E7F3EC}
+.tab.now{border-color:var(--berry);background:#fff;box-shadow:0 3px 0 var(--berry)}
+.tab b{display:block;font-family:'Courier Prime','Courier New',monospace;font-size:10px;
+  letter-spacing:1px;color:#7A6A4B}
+.tab.done b{color:var(--moss)}
+.tab i{display:block;font-style:normal;font-size:13px;font-weight:700;
+  color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:110px}
+
+/* ---------- question card ---------- */
+.stage{padding:18px 16px 26px}
+.qhead{text-align:center;margin-bottom:16px}
+.qnum{font-family:'Courier Prime','Courier New',monospace;font-size:12px;letter-spacing:3px;
+  color:var(--moss);font-weight:700}
+h1{font-family:'Baloo 2','Trebuchet MS',Verdana,system-ui,sans-serif;font-weight:800;
+  font-size:clamp(26px,6.5vw,40px);margin:4px 0 2px;line-height:1.15}
+.hint{font-size:16px;color:#5E5240;margin:0}
+
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.grid.wide{grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(200px,1fr));max-width:560px;margin:0 auto}
+.grid.swatches{grid-template-columns:repeat(auto-fit,minmax(104px,1fr))}
+
+.opt{
+  background:#fff;border:3px solid var(--ink);border-radius:18px;
+  padding:10px;cursor:pointer;text-align:center;
+  box-shadow:var(--shadow);font-family:'Baloo 2','Trebuchet MS',Verdana,system-ui,sans-serif;font-weight:600;
+  font-size:19px;color:var(--ink);
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:transform .12s ease;
+  min-height:112px;justify-content:center;
+}
+.opt:hover{transform:translateY(-3px)}
+.opt:active{transform:translateY(4px);box-shadow:none}
+.opt:focus-visible{outline:4px solid var(--berry);outline-offset:3px}
+.opt.picked{background:#E7F3EC;border-color:var(--moss);box-shadow:0 4px 0 var(--moss)}
+.opt.picked:after{content:"✓";position:absolute;top:6px;right:10px;font-size:22px;color:var(--moss);font-weight:800}
+.opt{position:relative}
+.again:disabled{opacity:.45;cursor:default}
+.matchlist{margin-top:0}
+.opt .sub{font-family:'Andika',Verdana,system-ui,sans-serif;font-weight:400;font-size:14px;color:#5E5240;line-height:1.2}
+.thumb{
+  width:100%;aspect-ratio:4/3;border-radius:12px;overflow:hidden;
+  background:var(--paper-2);display:flex;align-items:center;justify-content:center;
+  font-size:40px;border:2px solid var(--line);
+}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.sizeviz{height:56px;display:flex;align-items:flex-end;justify-content:center;gap:6px}
+.blob{background:var(--moss);border-radius:50%;border:2px solid var(--ink)}
+.ruler{width:100%;height:22px;border:2px solid var(--ink);border-radius:6px;
+  background:repeating-linear-gradient(90deg,#fff 0 9px,var(--paper-2) 9px 10px);overflow:hidden}
+.ruler i{display:block;height:100%;background:var(--berry)}
+.chip{width:100%;height:46px;border-radius:12px;border:2px solid var(--ink)}
+
+.back{
+  display:block;margin:20px auto 0;background:none;border:none;
+  font-family:'Andika',Verdana,system-ui,sans-serif;font-size:17px;color:var(--moss);
+  text-decoration:underline;cursor:pointer;padding:12px 18px;min-height:48px;
+}
+
+/* ---------- results ---------- */
+.results{padding:18px 16px 28px}
+.rlayout{display:grid;gap:18px;grid-template-columns:1fr}
+@media(min-width:760px){.rlayout{grid-template-columns:260px 1fr;align-items:start}}
+
+.tag{
+  background:var(--paper-2);border:3px solid var(--ink);border-radius:14px;
+  padding:14px 14px 12px;position:relative;
+}
+.tag:before{content:"";position:absolute;top:-3px;left:50%;transform:translateX(-50%);
+  width:44px;height:14px;background:var(--sun);border:3px solid var(--ink);
+  border-radius:0 0 10px 10px}
+.tag h2{font-family:'Courier Prime','Courier New',monospace;font-size:12px;letter-spacing:2px;
+  text-align:center;margin:12px 0 10px;color:#5E5240}
+.tag dl{margin:0;font-size:15px}
+.tag .row{display:flex;justify-content:space-between;gap:8px;
+  border-bottom:1px dotted var(--line);padding:5px 0}
+.tag dt{font-family:'Courier Prime','Courier New',monospace;font-size:11px;color:#7A6A4B;letter-spacing:1px}
+.tag dd{margin:0;font-weight:700;text-align:right}
+
+.matchlist{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
+.card{
+  background:#fff;border:3px solid var(--ink);border-radius:18px;overflow:hidden;
+  cursor:pointer;box-shadow:var(--shadow);text-align:left;padding:0;
+  transition:transform .12s ease;font-family:inherit;
+}
+.card:hover{transform:translateY(-3px)}
+.card:active{transform:translateY(4px);box-shadow:none}
+.card:focus-visible{outline:4px solid var(--berry);outline-offset:3px}
+.card .pic{width:100%;aspect-ratio:4/3;background:var(--paper-2);
+  display:flex;align-items:center;justify-content:center;font-size:46px;
+  border-bottom:3px solid var(--ink)}
+.card .pic img{width:100%;height:100%;object-fit:cover;display:block}
+.card .body{padding:9px 11px 11px}
+.card .nm{font-family:'Baloo 2','Trebuchet MS',Verdana,system-ui,sans-serif;font-weight:800;font-size:19px;line-height:1.1}
+.fit{display:inline-block;margin-top:6px;font-family:'Courier Prime','Courier New',monospace;
+  font-size:12px;font-weight:700;padding:3px 8px;border-radius:20px;
+  background:var(--moss);color:#fff}
+.fit.mid{background:var(--sun);color:var(--ink)}
+.fit.low{background:var(--paper-2);color:#5E5240}
+.venomtag{margin-top:6px;font-size:13px;font-weight:700;color:var(--berry)}
+
+/* ---------- popup ---------- */
+.overlay{
+  position:fixed;inset:0;background:rgba(23,51,46,.75);
+  display:none;align-items:center;justify-content:center;padding:14px;z-index:50;
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--paper);border:4px solid var(--ink);border-radius:22px;
+  max-width:520px;width:100%;max-height:92vh;overflow-y:auto;
+  box-shadow:0 12px 0 rgba(0,0,0,.4);
+}
+.mpic{width:100%;height:210px;background:var(--paper-2);
+  display:flex;align-items:center;justify-content:center;font-size:70px;
+  border-bottom:4px solid var(--ink)}
+.mpic img{width:100%;height:100%;object-fit:cover;display:block}
+.mbody{padding:16px 18px 20px}
+.mbody h3{font-family:'Baloo 2','Trebuchet MS',Verdana,system-ui,sans-serif;font-weight:800;font-size:30px;margin:0 0 2px}
+.mkind{font-family:'Courier Prime','Courier New',monospace;font-size:12px;letter-spacing:2px;
+  color:var(--moss);font-weight:700;margin-bottom:12px}
+.mbody ul{margin:0;padding:0;list-style:none}
+.mbody li{font-size:18px;line-height:1.5;padding:9px 0 9px 34px;position:relative;
+  border-bottom:1px dotted var(--line)}
+.mbody li:before{content:"🔎";position:absolute;left:0;top:8px;font-size:19px}
+.warn{background:#FFE9F1;border:3px solid var(--berry);border-radius:14px;
+  padding:10px 12px;margin-top:14px;font-size:17px;font-weight:700;color:#8E2453}
+.credit{font-family:'Courier Prime','Courier New',monospace;font-size:11px;color:#7A6A4B;margin-top:12px}
+.close{
+  width:100%;margin-top:14px;font-family:'Baloo 2','Trebuchet MS',Verdana,system-ui,sans-serif;font-weight:800;font-size:22px;
+  background:var(--berry);color:#fff;border:3px solid var(--ink);border-radius:16px;
+  padding:14px;cursor:pointer;box-shadow:0 5px 0 var(--ink);min-height:56px;
+}
+.close:active{transform:translateY(5px);box-shadow:none}
+
+.note{font-size:15px;color:#5E5240;text-align:center;margin:16px auto 0;max-width:520px}
+.again{
+  display:block;margin:18px auto 0;font-family:'Baloo 2','Trebuchet MS',Verdana,system-ui,sans-serif;font-weight:800;font-size:22px;
+  background:var(--sun);border:3px solid var(--ink);border-radius:16px;color:var(--ink);
+  padding:14px 28px;cursor:pointer;box-shadow:0 5px 0 var(--ink);min-height:56px;
+}
+.again:active{transform:translateY(5px);box-shadow:none}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.fade{animation:in .25s ease}
+@keyframes in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="netbar" style="display:none;background:#F5B916;border:3px solid #17332E;border-radius:14px;padding:12px 14px;margin-bottom:12px;font-size:16px;line-height:1.4">
+    <b>Photos are turned off right now.</b> This file is open in a place with no internet access, so
+    the animal pictures can't load and you'll see emoji instead. Put the file on a web address
+    (GitHub Pages, Cloudflare Pages, or any server) and open it there.
+    <button type="button" id="retryNet" style="margin-top:8px;font:inherit;font-weight:700;background:#fff;border:2px solid #17332E;border-radius:10px;padding:8px 12px;cursor:pointer;min-height:44px">Try photos again</button>
+  </div>
+  <div class="book">
+    <div class="top">
+      <div class="badge">Critter Finder<span>FIELD NOTEBOOK</span></div>
+      <div class="spacer"></div>
+      <button class="reset" id="resetBtn" type="button">↺ Start over</button>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="app"></div>
+  </div>
+  <p class="note" style="color:#F2E7C9">Photos come from Wikipedia. Look with your eyes — never touch a wild animal.</p>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mName">
+    <div class="mpic" id="mPic">🐾</div>
+    <div class="mbody">
+      <h3 id="mName"></h3>
+      <div class="mkind" id="mKind"></div>
+      <ul id="mFacts"></ul>
+      <div id="mWarn"></div>
+      <div class="credit">Photo: Wikipedia</div>
+      <button class="close" id="closeBtn" type="button">✕ Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ QUESTIONS ============ */
+const SIZES=["small","medium","big","giant"];
+const LENS=["notlong","medium","long","giant"];
+
+const QUESTIONS=[
+ {key:"type",tab:"Kind",title:"What kind of animal is it?",hint:"Tap the one that looks right.",style:"photo",filter:true,
+  opts:[
+   {v:"fish",l:"Fish",wiki:"Fish",e:"🐟"},
+   {v:"amphibian",l:"Amphibian",wiki:"Amphibian",e:"🐸",sub:"frogs & salamanders"},
+   {v:"invertebrate",l:"Invertebrate",wiki:"Invertebrate",e:"🦋",sub:"bugs, spiders, snails"},
+   {v:"mammal",l:"Mammal",wiki:"Mammal",e:"🦊",sub:"furry animals"},
+   {v:"bird",l:"Bird",wiki:"Bird",e:"🦅"},
+   {v:"reptile",l:"Reptile",wiki:"Reptile",e:"🦎",sub:"snakes & lizards"}
+ ]},
+ {key:"reptileKind",tab:"Reptile",title:"What kind of reptile is it?",hint:"Tap the closest one.",style:"photo",
+  when:{key:"type",val:"reptile"},filter:true,
+  opts:[
+   {v:"snake",l:"Snake",wiki:"Snake",e:"🐍",sub:"no legs"},
+   {v:"lizard",l:"Lizard",wiki:"Lizard",e:"🦎",sub:"four legs"},
+   {v:"turtle",l:"Turtle or tortoise",wiki:"Turtle",e:"🐢",sub:"has a shell"},
+   {v:"croc",l:"Alligator or crocodile",wiki:"Crocodilia",e:"🐊",sub:"big and toothy"}
+ ]},
+ {key:"size",tab:"Size",title:"How big is its body?",hint:"Think about the whole animal.",style:"size",
+  opts:[
+   {v:"small",l:"Small",sub:"fits in your hand",e:"🐜",d:14},
+   {v:"medium",l:"Medium",sub:"like a cat",e:"🐈",d:26},
+   {v:"big",l:"Big",sub:"as tall as you",e:"🧍",d:40},
+   {v:"giant",l:"Giant",sub:"bigger than a car",e:"🚌",d:54}
+ ]},
+ {key:"pattern",tab:"Pattern",title:"What pattern does it have?",hint:"Look at its skin, fur, or shell.",style:"pattern",
+  opts:[
+   {v:"splotches",l:"Splotches"},
+   {v:"lines",l:"Lines"},
+   {v:"dots",l:"Dots"},
+   {v:"shell",l:"Shell"},
+   {v:"x",l:"X shapes"},
+   {v:"plain",l:"All one color"}
+ ]},
+ {key:"habitat",tab:"Place",title:"Where did you find it?",hint:"Tap the place that matches.",style:"photo",
+  opts:[
+   {v:"desert",l:"Desert",wiki:"Desert",e:"🌵"},
+   {v:"forest",l:"Forest",wiki:"Forest",e:"🌲"},
+   {v:"mountain",l:"Mountain",wiki:"Mountain",e:"⛰️"},
+   {v:"rocks",l:"Rocks",wiki:"Boulder",e:"🪨"},
+   {v:"water",l:"Pond or river",wiki:"River",e:"🏞️"},
+   {v:"ocean",l:"Ocean",wiki:"Ocean",e:"🌊"},
+   {v:"grassland",l:"Grassy field",wiki:"Grassland",e:"🌾"},
+   {v:"yard",l:"Yard or park",wiki:"Garden",e:"🏡"}
+ ]},
+ {key:"venom",tab:"Danger",title:"Can it hurt you with poison or venom?",hint:"Pick \"I don't think so\" if you are not sure.",style:"two",
+  opts:[
+   {v:"yes",l:"Yes",sub:"it stings, bites, or is not safe to touch",e:"⚠️"},
+   {v:"no",l:"I don't think so",sub:"it looks safe",e:"🙂"}
+ ]},
+ {key:"length",tab:"Length",title:"How long is it?",hint:"Measure from nose to tail.",style:"length",
+  opts:[
+   {v:"notlong",l:"Not long",sub:"shorter than a pencil",p:16},
+   {v:"medium",l:"Medium",sub:"about your arm",p:42},
+   {v:"long",l:"Long",sub:"about a bike",p:72},
+   {v:"giant",l:"Giant",sub:"about a bus",p:100}
+ ]},
+ {key:"color",tab:"Color",title:"What colors do you see?",hint:"Tap every color it has, then tap Done.",style:"color",multi:true,
+  opts:[
+   {v:"brown",l:"Brown",c:"#8B5E34"},{v:"gray",l:"Gray",c:"#9AA3A8"},
+   {v:"black",l:"Black",c:"#2B2B2B"},{v:"white",l:"White",c:"#FBFBF7"},
+   {v:"green",l:"Green",c:"#3E9B4F"},{v:"blue",l:"Blue",c:"#3A7BD5"},
+   {v:"yellow",l:"Yellow",c:"#F5C518"},{v:"orange",l:"Orange",c:"#EF7B22"},
+   {v:"red",l:"Red",c:"#D33B33"},{v:"pink",l:"Pink",c:"#EE86AE"},
+   {v:"many",l:"Many colors",c:"linear-gradient(135deg,#D33B33,#F5C518,#3E9B4F,#3A7BD5)"}
+ ]}
+];
+
+/* ============ ANIMALS ============ */
+const A=(n,w,e,t,sub,sz,pat,hab,ven,len,col,facts)=>({n,w,e,t,sub,sz,pat,hab,ven,len,col,facts});
+const ANIMALS=[
+/* ===== MAMMALS ===== */
+A("Coyote","Coyote","🐺","mammal",null,["medium"],["plain"],["desert","forest","mountain","grassland","yard"],false,["medium"],["brown","gray"],["Coyotes sing to their family with yips and howls.","They eat almost anything, even fruit and bugs.","A coyote can run 40 miles per hour."]),
+A("Gray wolf","Gray wolf","🐺","mammal",null,["big"],["plain"],["forest","mountain","grassland"],false,["long"],["gray","white","brown"],["Wolves live and hunt in family packs.","A howl can be heard six miles away.","Every wolf has its own howl sound."]),
+A("Red fox","Red fox","🦊","mammal",null,["medium"],["plain"],["forest","grassland","yard","mountain"],false,["medium"],["orange","red","white"],["A fox hears mice moving under the snow.","It pounces straight up and dives nose first.","Its bushy tail works like a warm blanket."]),
+A("Kit fox","Kit fox","🦊","mammal",null,["small"],["plain"],["desert","grassland"],false,["medium"],["gray","brown"],["Huge ears let heat escape and keep it cool.","It is the smallest fox in North America.","It hunts at night and sleeps in a den by day."]),
+A("Bobcat","Bobcat","🐈","mammal",null,["medium"],["splotches","dots"],["desert","forest","mountain","rocks"],false,["medium"],["brown"],["Its short stubby tail is how it got the name bobcat.","Bobcats hunt at sunrise and sunset.","They can leap over a car in one jump."]),
+A("Mountain lion","Cougar","🐆","mammal",null,["big"],["plain"],["mountain","forest","desert","rocks"],false,["long"],["brown"],["It has more names than any other animal: puma, panther, cougar.","It can jump 18 feet straight up.","It purrs but cannot roar."]),
+A("American black bear","American black bear","🐻","mammal",null,["big"],["plain"],["forest","mountain"],false,["long"],["black","brown"],["Black bears can be black, brown, or even blond.","They sleep all winter in a cozy den.","A bear can smell food from a mile away."]),
+A("Grizzly bear","Grizzly bear","🐻","mammal",null,["giant"],["plain"],["forest","mountain","water"],false,["long"],["brown"],["A hump of muscle on its back helps it dig.","Grizzlies catch salmon leaping up waterfalls.","Their claws are as long as your fingers."]),
+A("Polar bear","Polar bear","🐻‍❄️","mammal",null,["giant"],["plain"],["ocean","water"],false,["long"],["white"],["Polar bear skin is black under the white fur.","Its fur is really see-through, not white.","It can swim for days without stopping."]),
+A("Giant panda","Giant panda","🐼","mammal",null,["big"],["splotches"],["forest","mountain"],false,["long"],["black","white"],["Pandas eat bamboo for 12 hours a day.","They have a wrist bone that works like a thumb.","A newborn panda is smaller than a stick of butter."]),
+A("Raccoon","Raccoon","🦝","mammal",null,["medium"],["lines"],["forest","water","yard"],false,["medium"],["gray","black"],["The black mask helps cut down bright glare.","Raccoons wash food with their hands before eating.","Their paws feel almost as well as your fingers."]),
+A("Striped skunk","Striped skunk","🦨","mammal",null,["small","medium"],["lines"],["forest","grassland","yard"],false,["medium"],["black","white"],["A skunk stomps its feet to warn you first.","Its spray can shoot about 10 feet.","Skunks eat wasps and beetles."]),
+A("Eastern chipmunk","Eastern chipmunk","🐿️","mammal",null,["small"],["lines"],["forest","yard","rocks"],false,["notlong"],["brown"],["Chipmunks stuff seeds in stretchy cheek pouches.","They dig tunnels with rooms for sleeping and food.","One chipmunk can gather thousands of seeds."]),
+A("Gray squirrel","Eastern gray squirrel","🐿️","mammal",null,["small"],["plain"],["forest","yard"],false,["medium"],["gray","white"],["Squirrels bury nuts and forget where many are.","Forgotten nuts grow into new trees.","They can climb down a tree headfirst."]),
+A("Desert cottontail","Desert cottontail","🐇","mammal",null,["small"],["plain"],["desert","grassland","yard"],false,["medium"],["brown","gray"],["Its big ears let heat escape to stay cool.","It freezes still to hide from hawks.","It runs in zigzags to escape."]),
+A("Collared peccary","Collared peccary","🐗","mammal",null,["medium"],["plain"],["desert","grassland"],false,["medium"],["gray","black"],["People in Arizona call them javelinas.","They eat prickly pear cactus, spines and all.","They see poorly but smell very well."]),
+A("Bighorn sheep","Bighorn sheep","🐏","mammal",null,["big"],["plain"],["mountain","rocks","desert"],false,["long"],["brown"],["Their hooves grip rock like climbing shoes.","Males crash horns with a loud crack.","One set of horns can weigh 30 pounds."]),
+A("Mule deer","Mule deer","🦌","mammal",null,["big"],["plain"],["forest","mountain","desert","grassland"],false,["long"],["brown","gray"],["It is named for its big mule-like ears.","It bounces with all four feet at once.","Males grow new antlers every single year."]),
+A("Moose","Moose","🫎","mammal",null,["giant"],["plain"],["forest","water","mountain"],false,["long"],["brown","black"],["Moose are the largest deer in the world.","They dive underwater to eat pond plants.","Antlers can spread wider than a door."]),
+A("American bison","American bison","🐃","mammal",null,["giant"],["plain"],["grassland"],false,["long"],["brown"],["Bison are the biggest land animal in North America.","They swing their heavy head to plow away snow.","They roll in dust to keep bugs off."]),
+A("Pronghorn","Pronghorn","🦌","mammal",null,["big"],["lines","plain"],["grassland","desert"],false,["long"],["brown","white"],["Pronghorn are the fastest animals in North America.","They can run fast for miles without stopping.","They can see almost all the way around them."]),
+A("Porcupine","North American porcupine","🦔","mammal",null,["medium"],["plain"],["forest","mountain"],false,["medium"],["brown","black"],["A porcupine has about 30,000 quills.","Quills are not thrown; they stick when touched.","Porcupines are good tree climbers."]),
+A("River otter","North American river otter","🦦","mammal",null,["medium"],["plain"],["water","forest"],false,["medium"],["brown"],["Otters slide down muddy banks for fun.","They close their nose and ears underwater.","Their fur traps air to keep them warm."]),
+A("Sea otter","Sea otter","🦦","mammal",null,["medium"],["plain"],["ocean"],false,["medium"],["brown"],["Sea otters crack shells with a rock on their belly.","They hold hands while sleeping so they do not drift.","They have the thickest fur of any animal."]),
+A("Beaver","North American beaver","🦫","mammal",null,["medium"],["plain"],["water","forest"],false,["medium"],["brown"],["Beavers cut down trees with orange front teeth.","They slap their flat tail to warn of danger.","Their dams make ponds where other animals live."]),
+A("Nine-banded armadillo","Nine-banded armadillo","🦡","mammal",null,["small","medium"],["lines","shell"],["grassland","forest","desert"],false,["medium"],["gray","brown"],["Its shell is made of bony plates.","It jumps straight up when it gets scared.","It always has four identical babies."]),
+A("Hedgehog","European hedgehog","🦔","mammal",null,["small"],["plain"],["forest","yard","grassland"],false,["notlong"],["brown"],["A hedgehog rolls into a spiky ball.","It has about 5,000 spines.","It sleeps all winter long."]),
+A("Ringtail","Ringtail","🦝","mammal",null,["small"],["lines"],["desert","rocks","mountain"],false,["medium"],["gray","black","white"],["Its striped tail is longer than its body.","It can turn its back feet almost all the way around.","It is the state mammal of Arizona."]),
+A("Giraffe","Giraffe","🦒","mammal",null,["giant"],["splotches"],["grassland"],false,["giant"],["brown","yellow"],["Every giraffe has its own splotch pattern.","Its tongue is purple and almost two feet long.","Giraffes sleep only a few minutes at a time."]),
+A("Plains zebra","Plains zebra","🦓","mammal",null,["big"],["lines"],["grassland"],false,["long"],["black","white"],["No two zebras have the same stripes.","Stripes help keep biting flies away.","Baby zebras can run within an hour of birth."]),
+A("Lion","Lion","🦁","mammal",null,["big"],["plain"],["grassland"],false,["long"],["brown","yellow"],["A lion's roar carries for five miles.","Lions live in family groups called prides.","Females do most of the hunting."]),
+A("Tiger","Tiger","🐯","mammal",null,["big"],["lines"],["forest","grassland"],false,["long"],["orange","black"],["Tigers are the biggest cats in the world.","They are strong swimmers and like water.","Their stripes go all the way to the skin."]),
+A("Cheetah","Cheetah","🐆","mammal",null,["big"],["dots"],["grassland","desert"],false,["long"],["yellow","black"],["Cheetahs are the fastest runners on land.","Black tear lines block sun from their eyes.","They cannot roar, but they can chirp."]),
+A("Leopard","Leopard","🐆","mammal",null,["big"],["splotches","dots"],["forest","grassland","mountain","rocks"],false,["long"],["yellow","black"],["Leopards drag their food up into trees.","Their spots are called rosettes.","They hunt mostly at night."]),
+A("African bush elephant","African bush elephant","🐘","mammal",null,["giant"],["plain"],["grassland","forest"],false,["giant"],["gray"],["Elephants are the largest land animals alive.","They hear low rumbles through their feet.","A trunk has about 40,000 muscles."]),
+A("Hippopotamus","Hippopotamus","🦛","mammal",null,["giant"],["plain"],["water","grassland"],false,["long"],["gray","pink"],["Hippos make their own pink sunscreen.","They cannot swim; they walk on the bottom.","They can hold their breath for five minutes."]),
+A("White rhinoceros","White rhinoceros","🦏","mammal",null,["giant"],["plain"],["grassland"],false,["long"],["gray"],["A rhino horn is made of the same stuff as your fingernails.","They love rolling in mud to cool off.","Birds ride on their backs and eat their bugs."]),
+A("Red kangaroo","Red kangaroo","🦘","mammal",null,["big"],["plain"],["desert","grassland"],false,["long"],["red","brown"],["A kangaroo cannot walk backward.","Babies ride in mom's pouch for months.","One hop can cover 25 feet."]),
+A("Koala","Koala","🐨","mammal",null,["small","medium"],["plain"],["forest"],false,["medium"],["gray","white"],["Koalas sleep up to 20 hours a day.","They eat only eucalyptus leaves.","Their fingerprints look like human ones."]),
+A("Sloth","Brown-throated sloth","🦥","mammal",null,["medium"],["plain"],["forest"],false,["medium"],["brown","gray","green"],["Sloths move so slowly that algae grows on them.","They come down from the tree only once a week.","They can turn their head almost all the way around."]),
+A("Meerkat","Meerkat","🦫","mammal",null,["small"],["lines"],["desert","grassland"],false,["medium"],["brown","gray"],["One meerkat stands guard while the others dig.","Dark eye patches cut down the glare.","They live in big family groups called mobs."]),
+A("Gorilla","Gorilla","🦍","mammal",null,["big"],["plain"],["forest","mountain"],false,["long"],["black","gray"],["Gorillas are the largest apes on Earth.","Each gorilla has its own nose print.","They build a fresh leafy nest every night."]),
+A("Chimpanzee","Chimpanzee","🐒","mammal",null,["medium"],["plain"],["forest","grassland"],false,["medium"],["black","brown"],["Chimps use sticks as tools to fish out termites.","They laugh when they play.","They greet each other with hugs and kisses."]),
+A("Giant anteater","Giant anteater","🐜","mammal",null,["big"],["lines"],["grassland","forest"],false,["long"],["gray","black","white"],["Its tongue is two feet long and very sticky.","It has no teeth at all.","It can eat 30,000 ants in one day."]),
+A("Blue whale","Blue whale","🐋","mammal",null,["giant"],["splotches","plain"],["ocean"],false,["giant"],["blue","gray"],["The blue whale is the biggest animal ever.","Its heart is the size of a small car.","It eats tiny shrimp called krill."]),
+A("Orca","Killer whale","🐳","mammal",null,["giant"],["splotches"],["ocean"],false,["giant"],["black","white"],["Orcas are really the largest kind of dolphin.","Each family speaks its own set of calls.","The fin on a male can be as tall as you."]),
+A("Bottlenose dolphin","Common bottlenose dolphin","🐬","mammal",null,["big"],["plain"],["ocean"],false,["long"],["gray"],["Dolphins call each other with name whistles.","They sleep with half their brain awake.","They find fish using echoes, like sonar."]),
+A("Harbor seal","Harbor seal","🦭","mammal",null,["medium"],["dots","splotches"],["ocean","rocks"],false,["long"],["gray","brown"],["Seal whiskers feel fish moving in dark water.","They can nap floating upright in the water.","Pups can swim within hours of being born."]),
+A("Mexican free-tailed bat","Mexican free-tailed bat","🦇","mammal",null,["small"],["plain"],["desert","rocks","yard","mountain"],false,["notlong"],["brown"],["Bats are the only mammals that truly fly.","They find bugs in the dark using echoes.","One bat eats thousands of insects a night."]),
+A("Platypus","Platypus","🦫","mammal",null,["small","medium"],["plain"],["water"],true,["medium"],["brown"],["A platypus lays eggs, but it is still a mammal.","Males have venom spurs on their back feet.","It hunts with its eyes closed, using its bill."]),
+
+/* ===== BIRDS ===== */
+A("Bald eagle","Bald eagle","🦅","bird",null,["big"],["plain"],["forest","water","mountain","ocean"],false,["long"],["brown","white"],["Bald eagles build the biggest nests of any bird.","They can spot a fish from very far away.","They snatch fish right off the water."]),
+A("Red-tailed hawk","Red-tailed hawk","🦅","bird",null,["medium"],["splotches"],["desert","grassland","forest","mountain"],false,["medium"],["brown","white","red"],["Its screech is the hawk sound used in movies.","It soars in circles without flapping.","It can see a mouse from a high perch."]),
+A("Peregrine falcon","Peregrine falcon","🦅","bird",null,["medium"],["lines"],["mountain","rocks","yard","ocean"],false,["medium"],["gray","white"],["The peregrine is the fastest animal on Earth.","It dives at over 200 miles per hour.","Some nest on tall city buildings."]),
+A("Osprey","Osprey","🦅","bird",null,["medium"],["plain"],["water","ocean"],false,["long"],["brown","white"],["Ospreys dive feet first to grab fish.","Spiky pads on their feet grip slippery fish.","They carry fish head first to fly faster."]),
+A("Turkey vulture","Turkey vulture","🦅","bird",null,["big"],["plain"],["desert","grassland","mountain"],false,["long"],["black","red"],["Vultures smell food from a mile up.","Their bald head stays clean while eating.","They rock side to side as they soar."]),
+A("Great horned owl","Great horned owl","🦉","bird",null,["medium"],["lines"],["forest","desert","mountain","yard"],false,["medium"],["brown","gray"],["The horns are just tufts of feathers, not ears.","Soft feathers make its flight silent.","It can turn its head very far around."]),
+A("Barn owl","Barn owl","🦉","bird",null,["medium"],["dots"],["grassland","yard","forest"],false,["medium"],["white","brown"],["Its face is shaped like a dish to catch sound.","It can hunt in total darkness by ear alone.","Its call is a raspy scream, not a hoot."]),
+A("Snowy owl","Snowy owl","🦉","bird",null,["medium"],["dots"],["grassland","mountain"],false,["medium"],["white","black"],["Snowy owls hunt in the daytime.","Feathers cover even their toes for warmth.","Males get whiter as they get older."]),
+A("Greater roadrunner","Greater roadrunner","🐦","bird",null,["medium"],["lines","splotches"],["desert","grassland"],false,["medium"],["brown","white"],["Roadrunners would rather run than fly.","They can catch and eat rattlesnakes.","They sunbathe to warm up on cold mornings."]),
+A("Gambel's quail","Gambel's quail","🐦","bird",null,["small"],["lines","splotches"],["desert","yard"],false,["medium"],["gray","brown","black"],["A curved topknot bobs on its head.","Chicks run and follow their parents right away.","Families travel together in groups called coveys."]),
+A("Cactus wren","Cactus wren","🐦","bird",null,["small"],["dots","lines"],["desert","yard"],false,["notlong"],["brown","white"],["It builds football-shaped nests in cactus.","It is the state bird of Arizona.","Cactus spines keep its nest safe."]),
+A("Gila woodpecker","Gila woodpecker","🐦","bird",null,["small"],["lines"],["desert","yard"],false,["notlong"],["brown","black"],["It makes its nest inside a giant saguaro cactus.","Its skull cushions its brain while it hammers.","Its tongue is long and sticky for grabbing bugs."]),
+A("Anna's hummingbird","Anna's hummingbird","🐦","bird",null,["small"],["plain"],["desert","yard","forest"],false,["notlong"],["green","pink"],["Its wings beat about 50 times each second.","It is the only bird that can fly backward.","Its nest is the size of a walnut shell."]),
+A("Blue jay","Blue jay","🐦","bird",null,["small"],["lines"],["forest","yard"],false,["notlong"],["blue","white"],["Blue jay feathers are not really blue — it is a light trick.","They copy the calls of hawks.","They hide acorns and grow new oak trees."]),
+A("Northern cardinal","Northern cardinal","🐦","bird",null,["small"],["plain"],["forest","yard"],false,["notlong"],["red","brown"],["Males are bright red and females are tan.","Both males and females sing.","They do not fly south for winter."]),
+A("American robin","American robin","🐦","bird",null,["small"],["plain"],["yard","forest","grassland"],false,["notlong"],["orange","brown","red"],["A robin tilts its head to see worms, not hear them.","Its eggs are famous robin's-egg blue.","It is often the first bird singing at dawn."]),
+A("American goldfinch","American goldfinch","🐦","bird",null,["small"],["plain"],["yard","grassland"],false,["notlong"],["yellow","black"],["Males turn bright yellow only in summer.","They eat almost nothing but seeds.","They nest late, when thistle fluff is ready."]),
+A("House sparrow","House sparrow","🐦","bird",null,["small"],["lines"],["yard","grassland"],false,["notlong"],["brown","gray"],["Sparrows take dust baths to clean feathers.","They live near people almost everywhere.","They hop instead of walking."]),
+A("Barn swallow","Barn swallow","🐦","bird",null,["small"],["plain"],["yard","grassland","water"],false,["notlong"],["blue","orange"],["It catches every meal in midair.","Its tail is deeply forked like scissors.","It builds a mud nest under roofs and bridges."]),
+A("Mourning dove","Mourning dove","🕊️","bird",null,["small"],["dots"],["yard","desert","grassland"],false,["medium"],["gray","brown"],["Its sad cooing sounds like an owl to many people.","Its wings whistle when it takes off.","Parents feed chicks a special crop milk."]),
+A("American crow","American crow","🐦‍⬛","bird",null,["medium"],["plain"],["yard","forest","grassland"],false,["medium"],["black"],["Crows remember human faces for years.","They use sticks as tools to reach food.","A group of crows is called a murder."]),
+A("Mallard","Mallard","🦆","bird",null,["medium"],["plain"],["water","yard"],false,["medium"],["green","brown","gray"],["Males have a shiny green head.","Ducklings follow the first thing they see.","Their feathers are waterproof."]),
+A("Canada goose","Canada goose","🦆","bird",null,["big"],["plain"],["water","grassland","yard"],false,["long"],["black","brown","white"],["They fly in a V shape to save energy.","They mate with the same partner for life.","They honk to each other while flying."]),
+A("Great blue heron","Great blue heron","🐦","bird",null,["big"],["plain"],["water","ocean"],false,["long"],["blue","gray"],["It stands frozen still, then stabs fast.","It folds its neck into an S when flying.","It can swallow a fish bigger than its neck."]),
+A("Sandhill crane","Sandhill crane","🐦","bird",null,["big"],["plain"],["grassland","water"],false,["long"],["gray","red"],["Cranes dance by jumping and bowing.","Their bugling call carries for miles.","They are one of the oldest bird species alive."]),
+A("Killdeer","Killdeer","🐦","bird",null,["small"],["lines"],["grassland","yard","water"],false,["notlong"],["brown","white","black"],["It fakes a broken wing to lead you away from its nest.","It lays eggs right on open gravel.","It calls out its own name: kill-deer!"]),
+A("Brown pelican","Brown pelican","🐦","bird",null,["big"],["plain"],["ocean","water"],false,["long"],["brown","white"],["Its throat pouch scoops up water and fish.","It dives headfirst from high in the air.","Air sacs under its skin cushion the crash."]),
+A("Atlantic puffin","Atlantic puffin","🐧","bird",null,["small"],["plain"],["ocean","rocks"],false,["medium"],["black","white","orange"],["Puffins can hold many fish in their beak at once.","Their colorful beak fades in winter.","They dig burrows in cliff dirt to nest."]),
+A("Emperor penguin","Emperor penguin","🐧","bird",null,["big"],["plain"],["ocean"],false,["long"],["black","white"],["Emperor penguins huddle to share warmth.","Dads balance the egg on their feet.","They can dive deeper than any other bird."]),
+A("American flamingo","American flamingo","🦩","bird",null,["big"],["plain"],["water","ocean"],false,["long"],["pink"],["Flamingos turn pink from the food they eat.","They eat with their head upside down.","They rest on one leg to stay warm."]),
+A("Wild turkey","Wild turkey","🦃","bird",null,["big"],["plain"],["forest","grassland"],false,["long"],["brown","black"],["Wild turkeys can fly fast for short bursts.","They sleep up in trees at night.","Males fan their tail into a big circle."]),
+A("Common ostrich","Common ostrich","🦩","bird",null,["giant"],["plain"],["grassland","desert"],false,["long"],["black","brown"],["Ostriches are the biggest birds on Earth.","They cannot fly, but they run very fast.","One ostrich egg weighs about three pounds."]),
+A("Indian peafowl","Indian peafowl","🦚","bird",null,["big"],["dots"],["forest","grassland"],false,["long"],["blue","green"],["The male fans out a tail covered in eye spots.","Only the males have the long showy train.","They roost high in trees at night."]),
+A("Scarlet macaw","Scarlet macaw","🦜","bird",null,["medium"],["plain"],["forest"],false,["long"],["red","blue","yellow","many"],["Macaws can live longer than 50 years.","They crack hard nuts with a strong beak.","They use one foot like a hand to hold food."]),
+A("Toco toucan","Toco toucan","🦜","bird",null,["medium"],["plain"],["forest"],false,["medium"],["black","orange","white"],["Its giant beak is mostly hollow and light.","The beak helps it stay cool.","It tosses fruit in the air and catches it."]),
+A("Hooded pitohui","Hooded pitohui","🐦","bird",null,["small"],["plain"],["forest"],true,["notlong"],["orange","black"],["This is one of the only poisonous birds known.","Its feathers and skin hold a strong toxin.","It gets the poison from beetles it eats."]),
+
+/* ===== REPTILES : SNAKES ===== */
+A("Western diamondback rattlesnake","Western diamondback rattlesnake","🐍","reptile","snake",["medium"],["x","splotches"],["desert","rocks","grassland"],true,["long"],["brown","gray"],["Its back has diamond shapes down the middle.","The rattle is made of dry, hollow rings.","It senses body heat to hunt in the dark."]),
+A("Sidewinder","Sidewinder (snake)","🐍","reptile","snake",["small"],["splotches","x"],["desert"],true,["medium"],["brown","yellow"],["It moves sideways in loops across hot sand.","It leaves J-shaped tracks behind.","Little horns above its eyes block the sun."]),
+A("Copperhead","Agkistrodon contortrix","🐍","reptile","snake",["medium"],["x"],["forest","rocks","grassland"],true,["long"],["brown","orange"],["Its bands look like hourglasses on its sides.","Babies have a bright yellow tail tip.","It freezes still instead of running away."]),
+A("Coral snake","Micrurus fulvius","🐍","reptile","snake",["small"],["lines"],["forest","desert","grassland"],true,["long"],["red","yellow","black","many"],["Red touching yellow means it is venomous.","It has a small mouth and rarely bites.","It spends most of its time underground."]),
+A("King cobra","King cobra","🐍","reptile","snake",["big"],["lines"],["forest"],true,["giant"],["brown","black"],["The king cobra is the longest venomous snake.","It can lift its head as high as your chest.","It is the only snake that builds a nest."]),
+A("Black mamba","Black mamba","🐍","reptile","snake",["big"],["plain"],["grassland","forest","rocks"],true,["giant"],["gray","brown"],["It is named for the black inside of its mouth.","It is one of the fastest snakes alive.","It would rather flee than fight."]),
+A("Corn snake","Corn snake","🐍","reptile","snake",["small"],["splotches"],["forest","grassland","yard"],false,["long"],["orange","red"],["Corn snakes are not venomous at all.","They squeeze mice instead of biting with venom.","They are great climbers."]),
+A("Common garter snake","Common garter snake","🐍","reptile","snake",["small"],["lines"],["yard","grassland","water","forest"],false,["long"],["green","black"],["Garter snakes have stripes running down the body.","They are harmless to people.","They often hide under logs and rocks."]),
+A("Gopher snake","Pituophis catenifer","🐍","reptile","snake",["medium"],["splotches"],["desert","grassland","yard"],false,["long"],["brown","yellow"],["It hisses and shakes its tail to copy a rattlesnake.","It has no venom and no rattle.","It helps farmers by eating rodents."]),
+A("California kingsnake","California kingsnake","🐍","reptile","snake",["small"],["lines"],["desert","grassland","rocks","yard"],false,["long"],["black","white"],["Kingsnakes eat other snakes, even rattlesnakes.","Rattlesnake venom does not hurt them.","Their bands look like black and white rings."]),
+A("Ball python","Ball python","🐍","reptile","snake",["medium"],["splotches"],["grassland","forest"],false,["long"],["brown","black","yellow"],["It curls into a tight ball when scared.","It is one of the calmest pet snakes.","It can go weeks between meals."]),
+A("Boa constrictor","Boa constrictor","🐍","reptile","snake",["big"],["x","splotches"],["forest"],false,["giant"],["brown"],["Its back has saddle shapes that look like Xs.","It squeezes instead of using venom.","Boas are born alive, not from eggs."]),
+A("Green anaconda","Green anaconda","🐍","reptile","snake",["giant"],["dots","splotches"],["water","forest"],false,["giant"],["green","black"],["The anaconda is the heaviest snake in the world.","It floats with just its eyes above water.","It can stay underwater for ten minutes."]),
+A("Reticulated python","Reticulated python","🐍","reptile","snake",["giant"],["x","splotches"],["forest","water"],false,["giant"],["brown","yellow","black"],["It is the longest snake in the world.","Its net-like pattern hides it on the forest floor.","It can swim between islands."]),
+
+/* ===== REPTILES : LIZARDS ===== */
+A("Gila monster","Gila monster","🦎","reptile","lizard",["medium"],["splotches","dots"],["desert","rocks"],true,["medium"],["orange","black"],["This is one of the few venomous lizards.","It stores fat in its fat tail.","It spends most of its life underground."]),
+A("Texas horned lizard","Texas horned lizard","🦎","reptile","lizard",["small"],["dots","splotches"],["desert","rocks"],false,["notlong"],["brown"],["It can squirt blood from the corner of its eye.","People call it a horny toad, but it is a lizard.","It eats mostly harvester ants."]),
+A("Chuckwalla","Chuckwalla","🦎","reptile","lizard",["medium"],["splotches"],["desert","rocks"],false,["medium"],["black","brown","red"],["It wedges into a rock crack and puffs up.","Puffed up, nothing can pull it out.","It eats flowers and leaves, not bugs."]),
+A("Common collared lizard","Common collared lizard","🦎","reptile","lizard",["small"],["dots","lines"],["desert","rocks","grassland"],false,["medium"],["green","yellow","black"],["Two black collar bands ring its neck.","It runs on its two back legs like a tiny dinosaur.","Males turn bright blue-green in spring."]),
+A("Green anole","Carolina anole","🦎","reptile","lizard",["small"],["plain"],["forest","yard"],false,["notlong"],["green","brown"],["It changes from green to brown with its mood.","Males puff out a pink throat fan.","Sticky toe pads let it climb glass."]),
+A("Leopard gecko","Common leopard gecko","🦎","reptile","lizard",["small"],["dots"],["desert","rocks"],false,["medium"],["yellow","black","white"],["It can drop its tail to escape and grow a new one.","Unlike most geckos, it has real eyelids.","It licks its eyes to keep them clean."]),
+A("Green iguana","Green iguana","🦎","reptile","lizard",["big"],["lines"],["forest","water"],false,["long"],["green"],["It has a third eye spot on top of its head.","It drops out of trees into water to escape.","It eats leaves and flowers, not meat."]),
+A("Veiled chameleon","Veiled chameleon","🦎","reptile","lizard",["small"],["lines"],["forest","desert"],false,["medium"],["green","yellow"],["Each eye can look a different way at once.","It changes color with its mood, not the wall.","Its tongue shoots out faster than you can blink."]),
+A("Frilled lizard","Chlamydosaurus","🦎","reptile","lizard",["medium"],["plain"],["forest","grassland"],false,["long"],["brown","orange"],["It snaps open a big frill to look scary.","Then it runs away on two legs.","The frill folds flat against its neck."]),
+A("Komodo dragon","Komodo dragon","🦎","reptile","lizard",["big"],["plain"],["forest","grassland"],true,["giant"],["gray","brown"],["Komodo dragons are the largest lizards alive.","Their bite carries venom.","They can smell food from miles away with their tongue."]),
+
+/* ===== REPTILES : TURTLES ===== */
+A("Desert tortoise","Desert tortoise","🐢","reptile","turtle",["medium"],["shell"],["desert","rocks"],false,["medium"],["brown"],["Desert tortoises can live 50 years or more.","They store water inside their body for months.","They dig long burrows to escape the heat."]),
+A("Galápagos tortoise","Galápagos tortoise","🐢","reptile","turtle",["big"],["shell"],["grassland","rocks"],false,["long"],["gray","brown"],["Some live more than 150 years.","They can go a year without food or water.","They are the largest tortoises alive."]),
+A("Red-eared slider","Red-eared slider","🐢","reptile","turtle",["small"],["shell","lines"],["water","yard"],false,["medium"],["green","red","yellow"],["A red stripe sits behind each eye.","It slides off logs into the water when scared.","It basks in the sun to warm up."]),
+A("Painted turtle","Painted turtle","🐢","reptile","turtle",["small"],["shell","lines"],["water"],false,["medium"],["green","red","yellow"],["Bright lines look painted along its shell.","Hatchlings can freeze in the nest and survive.","It stacks up on logs with other turtles."]),
+A("Common snapping turtle","Common snapping turtle","🐢","reptile","turtle",["medium"],["shell"],["water"],false,["medium"],["brown","black","green"],["It has a strong beak and a long neck.","Algae often grows on its rough shell.","It is calm underwater but snappy on land."]),
+A("Green sea turtle","Green sea turtle","🐢","reptile","turtle",["big"],["shell"],["ocean"],false,["long"],["green","brown"],["Green sea turtles eat sea grass, like ocean cows.","They swim thousands of miles across the sea.","Females return to the beach where they hatched."]),
+A("Leatherback sea turtle","Leatherback sea turtle","🐢","reptile","turtle",["giant"],["shell","lines"],["ocean"],false,["giant"],["black","gray"],["It is the biggest turtle in the world.","Its shell is leathery, not hard.","It eats jellyfish all day long."]),
+
+/* ===== REPTILES : CROCODILIANS ===== */
+A("American alligator","American alligator","🐊","reptile","croc",["giant"],["plain"],["water"],false,["giant"],["black","green"],["Alligator moms carry babies in their mouth gently.","They can hold their breath for a long time.","Their bite is one of the strongest measured."]),
+A("Saltwater crocodile","Saltwater crocodile","🐊","reptile","croc",["giant"],["plain"],["water","ocean"],false,["giant"],["gray","green","brown"],["It is the largest reptile on Earth.","It can swim far out into the open sea.","It floats like a log with only eyes showing."]),
+A("Nile crocodile","Nile crocodile","🐊","reptile","croc",["giant"],["plain"],["water"],false,["giant"],["green","gray"],["Little birds pick its teeth clean.","Mothers guard their nest for months.","It can go a long time between meals."]),
+A("Gharial","Gharial","🐊","reptile","croc",["giant"],["plain"],["water"],false,["giant"],["gray","brown"],["Its snout is long and skinny like tweezers.","That thin snout snaps sideways to catch fish.","It is one of the rarest crocodilians."]),
+
+/* ===== AMPHIBIANS ===== */
+A("Golden poison frog","Golden poison frog","🐸","amphibian",null,["small"],["plain"],["forest"],true,["notlong"],["yellow"],["It is one of the most poisonous animals on Earth.","Bright yellow warns animals to stay away.","In a zoo it loses its poison, because of its food."]),
+A("Red-eyed tree frog","Agalychnis callidryas","🐸","amphibian",null,["small"],["lines"],["forest"],false,["notlong"],["green","blue","many"],["It flashes red eyes to startle predators.","Sticky toe pads help it grip wet leaves.","It sleeps in the day and hunts at night."]),
+A("American green tree frog","American green tree frog","🐸","amphibian",null,["small"],["plain","lines"],["water","forest","yard"],false,["notlong"],["green","white"],["It sticks to windows with its toe pads.","It calls loudest right before rain.","It hides under leaves during the day."]),
+A("Spring peeper","Spring peeper","🐸","amphibian",null,["small"],["x"],["forest","water"],false,["notlong"],["brown"],["A dark X shape marks its back.","Its peep is one of the first sounds of spring.","A whole pond of them can be as loud as a siren."]),
+A("Wood frog","Wood frog","🐸","amphibian",null,["small"],["splotches"],["forest","water"],false,["notlong"],["brown"],["It freezes almost solid all winter and thaws alive.","A dark mask runs across its eyes.","It breeds in puddles that dry up by summer."]),
+A("American bullfrog","American bullfrog","🐸","amphibian",null,["medium"],["splotches"],["water","grassland"],false,["medium"],["green","brown"],["Its call sounds like a cow mooing far away.","Tadpoles can take two years to become frogs.","It can jump ten times its own length."]),
+A("Goliath frog","Goliath frog","🐸","amphibian",null,["medium"],["splotches"],["water","forest"],false,["medium"],["green","brown"],["It is the biggest frog in the world.","It can weigh as much as a house cat.","It moves heavy rocks to build nests."]),
+A("American toad","American toad","🐸","amphibian",null,["small"],["dots","splotches"],["yard","forest","grassland"],true,["notlong"],["brown"],["Its skin makes a mild poison, so wash your hands.","Toads do not give people warts.","It eats thousands of bugs each summer."]),
+A("Sonoran Desert toad","Colorado River toad","🐸","amphibian",null,["medium"],["plain"],["desert","water"],true,["medium"],["green","brown"],["Its skin makes a strong toxin, so never touch it.","It waits underground for summer rain.","It is one of the biggest toads in North America."]),
+A("Cane toad","Cane toad","🐸","amphibian",null,["medium"],["splotches"],["grassland","yard","water"],true,["medium"],["brown"],["Cane toads have poison glands behind the eyes.","They were moved to new places and became a pest.","A female can lay thousands of eggs at once."]),
+A("Fire salamander","Fire salamander","🦎","amphibian",null,["small"],["splotches"],["forest","mountain"],true,["notlong"],["black","yellow"],["Yellow spots warn that its skin is poisonous.","It hides under logs and comes out in rain.","It can regrow a lost tail or leg."]),
+A("Tiger salamander","Tiger salamander","🦎","amphibian",null,["small"],["splotches"],["forest","grassland","water"],false,["medium"],["black","yellow"],["It is the largest land salamander in North America.","It spends most of the year in a burrow.","Yellow blotches give it its tiger name."]),
+A("Eastern newt","Eastern newt","🦎","amphibian",null,["small"],["dots"],["water","forest"],true,["notlong"],["orange","red","green"],["Young newts are bright orange and walk on land.","Grown newts turn green and live in ponds.","Its skin holds a toxin, so do not touch."]),
+A("Axolotl","Axolotl","🦎","amphibian",null,["small"],["plain"],["water"],false,["medium"],["pink","white"],["An axolotl keeps its feathery gills for life.","It can regrow legs, and even parts of its heart.","It is found wild in only one lake in Mexico."]),
+A("Mudpuppy","Mudpuppy","🦎","amphibian",null,["small"],["dots"],["water"],false,["medium"],["brown","gray"],["It keeps red feathery gills its whole life.","It never leaves the water.","It hides under rocks in cold streams."]),
+A("Caecilian","Caecilian","🪱","amphibian",null,["small"],["plain"],["forest","water"],false,["medium"],["gray","black","blue"],["It looks like a worm but is an amphibian.","It has no legs at all.","Most are nearly blind and live underground."]),
+
+/* ===== FISH ===== */
+A("Clownfish","Clownfish","🐠","fish",null,["small"],["lines"],["ocean"],false,["notlong"],["orange","white"],["Clownfish live safely inside stinging anemones.","A slimy coat keeps the stings from hurting them.","The biggest fish in the group becomes the female."]),
+A("Great white shark","Great white shark","🦈","fish",null,["giant"],["plain"],["ocean"],false,["giant"],["gray","white"],["Great whites grow new teeth all their life.","They can sense tiny bits of electricity.","They leap clear out of the water to hunt."]),
+A("Whale shark","Whale shark","🦈","fish",null,["giant"],["dots"],["ocean"],false,["giant"],["gray","white","blue"],["The whale shark is the biggest fish alive.","It eats tiny plankton, not big animals.","Its spot pattern is unique, like a fingerprint."]),
+A("Great hammerhead","Great hammerhead","🦈","fish",null,["giant"],["plain"],["ocean"],false,["giant"],["gray"],["Its eyes sit at the ends of its wide head.","That shape helps it see almost everywhere.","It pins stingrays down with its head."]),
+A("Manta ray","Giant oceanic manta ray","🐟","fish",null,["giant"],["splotches"],["ocean"],false,["giant"],["black","white"],["Mantas have no stinger at all.","They flap huge wings like underwater birds.","They do somersaults while eating plankton."]),
+A("Southern stingray","Southern stingray","🐟","fish",null,["big"],["plain"],["ocean"],true,["long"],["gray","brown"],["A stingray has a venomous barb on its tail.","It hides under sand with only its eyes showing.","It flaps its fins like wings to swim."]),
+A("Pufferfish","Tetraodontidae","🐡","fish",null,["small"],["dots"],["ocean"],true,["medium"],["brown","yellow"],["A pufferfish gulps water to puff up like a ball.","Its body holds a very strong poison.","Puffed up, it is too big to swallow."]),
+A("Red lionfish","Red lionfish","🐟","fish",null,["small"],["lines"],["ocean"],true,["medium"],["red","white","brown"],["Its long spines carry venom.","Feathery fins make it look bigger than it is.","It is a big problem outside its home ocean."]),
+A("Moray eel","Moray eel","🐟","fish",null,["big"],["dots","splotches"],["ocean","rocks"],true,["long"],["green","brown","yellow"],["It hides in reef holes with its mouth open.","It has a second set of jaws in its throat.","It opens and closes its mouth to breathe."]),
+A("Electric eel","Electric eel","🐟","fish",null,["big"],["plain"],["water"],false,["giant"],["gray","black"],["It makes a strong electric shock to stun food.","It is really a knifefish, not a true eel.","It must come up for air to breathe."]),
+A("Anglerfish","Anglerfish","🐟","fish",null,["small"],["plain"],["ocean"],false,["medium"],["black","brown"],["It dangles a glowing lure to attract fish.","It lives where sunlight never reaches.","Its stomach stretches to hold big meals."]),
+A("Ocean sunfish","Ocean sunfish","🐟","fish",null,["giant"],["plain"],["ocean"],false,["long"],["gray","white"],["It is the heaviest bony fish in the world.","It looks like a giant swimming head.","It suns itself flat at the surface."]),
+A("Swordfish","Swordfish","🐟","fish",null,["big"],["plain"],["ocean"],false,["long"],["gray","blue"],["Its long bill slashes through schools of fish.","It can warm up its own eyes and brain.","It is one of the fastest fish in the sea."]),
+A("Great barracuda","Great barracuda","🐟","fish",null,["big"],["lines","plain"],["ocean"],false,["long"],["gray","white"],["It has a mouth full of sharp, pointy teeth.","It bursts forward in short, very fast dashes.","Young ones hide in mangrove roots."]),
+A("Red-bellied piranha","Red-bellied piranha","🐟","fish",null,["small"],["dots","plain"],["water"],false,["medium"],["gray","red","orange"],["Piranhas mostly eat other fish and plants.","They swim in groups to stay safe from bigger fish.","Their teeth interlock like scissors."]),
+A("Rainbow trout","Rainbow trout","🐟","fish",null,["medium"],["dots"],["water","mountain"],false,["medium"],["many","pink"],["A pink stripe runs along its side.","It likes cold, fast, clean water.","It swims upstream to lay eggs in gravel."]),
+A("Sockeye salmon","Sockeye salmon","🐟","fish",null,["medium"],["plain"],["water","ocean","mountain"],false,["medium"],["red","green"],["It turns bright red when it is ready to spawn.","It swims from the ocean back to its home stream.","It leaps up waterfalls on the way."]),
+A("Channel catfish","Channel catfish","🐟","fish",null,["medium"],["dots","plain"],["water"],true,["medium"],["gray","brown"],["Its whiskers are called barbels and taste the water.","Its fin spines can give a painful poke.","It tastes with its whole body, not just its mouth."]),
+A("Largemouth bass","Largemouth bass","🐟","fish",null,["medium"],["lines","splotches"],["water"],false,["medium"],["green","black"],["Its mouth opens wider than its eye.","It hides in weeds and ambushes prey.","Males guard the nest of eggs."]),
+A("Bluegill","Bluegill","🐟","fish",null,["small"],["lines"],["water"],false,["notlong"],["blue","green","orange"],["It has a dark blue flap on its gill cover.","It is shaped flat like a dinner plate.","It fans a round nest in the sand."]),
+A("Goldfish","Goldfish","🐠","fish",null,["small"],["plain"],["water"],false,["notlong"],["orange","white","many"],["Goldfish are a kind of pet carp.","They remember things for months.","In a pond they can grow very large."]),
+A("Koi","Koi","🐠","fish",null,["medium"],["splotches"],["water"],false,["medium"],["orange","white","many"],["Koi are pet carp bred for bright colors.","Some koi live longer than people.","They learn to eat right out of your hand."]),
+A("Betta","Siamese fighting fish","🐠","fish",null,["small"],["plain"],["water"],false,["notlong"],["blue","red","many"],["A betta gulps air right at the surface.","Males flare their gills to look big.","Dads build floating bubble nests."]),
+A("Seahorse","Seahorse","🐴","fish",null,["small"],["lines"],["ocean"],false,["notlong"],["yellow","orange"],["Seahorse dads carry the babies in a pouch.","They hold on to sea grass with their tail.","They have no stomach, so they eat all day."]),
+
+/* ===== INVERTEBRATES ===== */
+A("Monarch butterfly","Monarch butterfly","🦋","invertebrate",null,["small"],["lines"],["grassland","yard","mountain"],true,["notlong"],["orange","black"],["Monarchs taste awful to birds because of milkweed.","They fly thousands of miles every fall.","Caterpillars eat only milkweed leaves."]),
+A("Desert tarantula","Aphonopelma chalcodes","🕷️","invertebrate",null,["small"],["plain"],["desert","rocks","grassland"],true,["medium"],["brown"],["Its venom is weak and rarely hurts people.","It flicks itchy belly hairs at attackers.","Females can live over 20 years."]),
+A("Arizona bark scorpion","Arizona bark scorpion","🦂","invertebrate",null,["small"],["plain"],["desert","rocks","yard"],true,["notlong"],["yellow","brown"],["Scorpions glow bright green under a black light.","This is the most venomous scorpion in the U.S.","They hide in cracks and under bark."]),
+A("Black widow spider","Latrodectus mactans","🕷️","invertebrate",null,["small"],["x","splotches"],["rocks","yard","desert"],true,["notlong"],["black","red"],["A red hourglass shape sits under her belly.","Her web is messy and very strong.","Only the female has a dangerous bite."]),
+A("Garden spider","Argiope aurantia","🕷️","invertebrate",null,["small"],["x","lines"],["yard","grassland"],true,["notlong"],["yellow","black"],["It stitches a zigzag X into the middle of its web.","It eats its old web and spins a new one nightly.","Its bite is harmless to people."]),
+A("Jumping spider","Salticidae","🕷️","invertebrate",null,["small"],["lines","dots"],["yard","rocks","forest"],true,["notlong"],["black","brown","white"],["It pounces instead of building a trap web.","It has the sharpest eyes of any spider.","It trails a silk safety line when it jumps."]),
+A("Ladybug","Coccinellidae","🐞","invertebrate",null,["small"],["dots"],["yard","grassland","forest"],false,["notlong"],["red","black"],["Ladybugs eat aphids that hurt garden plants.","They leak yucky yellow goo to scare birds.","Their spots do not tell you their age."]),
+A("Honey bee","Western honey bee","🐝","invertebrate",null,["small"],["lines"],["yard","grassland","forest"],true,["notlong"],["yellow","black"],["Bees dance to tell each other where flowers are.","One hive can hold 50,000 bees.","A worker bee makes a tiny drop of honey in her life."]),
+A("Bumblebee","Bumblebee","🐝","invertebrate",null,["small"],["lines"],["yard","grassland","mountain"],true,["notlong"],["yellow","black"],["Bumblebees buzz flowers to shake pollen loose.","They can fly on cold, cloudy days.","Their fuzzy coat keeps them warm."]),
+A("Paper wasp","Paper wasp","🐝","invertebrate",null,["small"],["lines"],["yard","forest"],true,["notlong"],["brown","yellow","black"],["It chews wood into paper to build its nest.","The nest looks like a small gray umbrella.","It can sting more than once."]),
+A("Ant","Ant","🐜","invertebrate",null,["small"],["plain"],["yard","desert","forest","grassland"],true,["notlong"],["black","brown","red"],["Ants can lift many times their own weight.","They follow scent trails to food.","A colony can have millions of ants."]),
+A("Dragonfly","Dragonfly","🦟","invertebrate",null,["small"],["lines","plain"],["water","yard","grassland"],false,["notlong"],["blue","green","red","many"],["It can fly forward, backward, and hover.","Its eyes cover almost its whole head.","Baby dragonflies live underwater for years."]),
+A("Grasshopper","Grasshopper","🦗","invertebrate",null,["small"],["plain","lines"],["grassland","yard","desert"],false,["notlong"],["green","brown"],["It can jump 20 times its own body length.","Its ears are on its belly, not its head.","It sings by rubbing its leg on its wing."]),
+A("Praying mantis","Mantis","🦗","invertebrate",null,["small"],["plain"],["yard","grassland","forest"],false,["medium"],["green","brown"],["A mantis turns its head to watch you.","Its front legs snap shut like a trap.","It can look like a leaf or a stick."]),
+A("Firefly","Firefly","🪲","invertebrate",null,["small"],["lines"],["yard","forest","grassland"],false,["notlong"],["black","yellow","red"],["Its glow makes almost no heat at all.","Each kind flashes its own secret pattern.","Even the eggs of some fireflies glow."]),
+A("Cicada","Cicada","🦗","invertebrate",null,["small"],["plain"],["forest","yard"],false,["notlong"],["black","green","brown"],["Some cicadas wait 17 years underground.","They are among the loudest insects on Earth.","They leave crunchy shells stuck on trees."]),
+A("Roly-poly","Armadillidiidae","🪲","invertebrate",null,["small"],["lines"],["yard","forest","rocks"],false,["notlong"],["gray","brown"],["A roly-poly is a crustacean, like a tiny crab.","It breathes with gills and needs damp places.","It rolls into a perfect ball."]),
+A("Centipede","Scolopendra","🪱","invertebrate",null,["small"],["lines"],["desert","rocks","forest","yard"],true,["medium"],["brown","orange","red"],["It has one pair of legs on each body part.","Its front legs are venom claws.","It hunts at night and hides by day."]),
+A("Desert millipede","Orthoporus ornatus","🪱","invertebrate",null,["small"],["lines"],["desert","forest","rocks"],true,["medium"],["brown","black"],["It curls into a coil when scared.","It leaks a bad-smelling liquid to defend itself.","Millipedes eat old dead leaves."]),
+A("Earthworm","Earthworm","🪱","invertebrate",null,["small"],["plain"],["yard","forest","grassland"],false,["medium"],["pink","brown"],["Worms breathe right through their skin.","Their tunnels bring air to plant roots.","A worm has no eyes but feels light."]),
+A("Garden snail","Cornu aspersum","🐌","invertebrate",null,["small"],["shell"],["yard","forest"],false,["notlong"],["brown"],["A snail carries its home on its back.","It glides on a trail of slippery slime.","Snails have thousands of tiny teeth."]),
+A("Slug","Slug","🐌","invertebrate",null,["small"],["plain","splotches"],["yard","forest"],false,["notlong"],["gray","brown","black"],["A slug is a snail without a shell.","Its slime makes it hard for birds to grab.","It has two pairs of feelers on its head."]),
+A("Common octopus","Common octopus","🐙","invertebrate",null,["medium"],["splotches"],["ocean","rocks"],true,["medium"],["red","brown"],["An octopus has three hearts and blue blood.","It changes color and texture in a second.","Each arm can taste what it touches."]),
+A("Squid","Squid","🦑","invertebrate",null,["medium"],["dots","plain"],["ocean"],false,["medium"],["pink","white","red"],["A squid shoots water to zoom backward.","It squirts ink to hide and escape.","It has eight arms plus two long tentacles."]),
+A("Nautilus","Nautilus","🐚","invertebrate",null,["small"],["lines","shell"],["ocean"],false,["notlong"],["white","brown","orange"],["Its coiled shell has many sealed rooms inside.","It floats by changing gas in those rooms.","Its shell design has barely changed in ages."]),
+A("Moon jelly","Aurelia aurita","🪼","invertebrate",null,["medium"],["plain"],["ocean"],true,["medium"],["white"],["Jellyfish have no brain, heart, or bones.","Their sting is mild but still hurts.","They are almost all water."]),
+A("Hermit crab","Hermit crab","🦀","invertebrate",null,["small"],["shell"],["ocean","rocks"],false,["notlong"],["brown","red"],["A hermit crab borrows an empty snail shell.","It trades up to a bigger shell as it grows.","Crabs line up by size to swap shells."]),
+A("Blue crab","Callinectes sapidus","🦀","invertebrate",null,["small"],["plain"],["ocean","water"],false,["notlong"],["blue","green"],["Its back legs are flat paddles for swimming.","It sheds its whole shell to grow bigger.","Its claw tips show if it is male or female."]),
+A("American lobster","American lobster","🦞","invertebrate",null,["medium"],["plain"],["ocean","rocks"],false,["medium"],["brown","red","blue"],["Lobsters have blue blood.","One claw crushes and the other one cuts.","Some lobsters live over 100 years."]),
+A("Crayfish","Crayfish","🦞","invertebrate",null,["small"],["plain"],["water"],false,["notlong"],["brown","red","blue"],["Crayfish look like tiny freshwater lobsters.","They can regrow a lost claw.","They walk forward but swim backward."]),
+A("Sea star","Starfish","⭐","invertebrate",null,["small"],["dots","plain"],["ocean","rocks"],false,["notlong"],["orange","red"],["A sea star can grow a whole new arm.","It has tiny eyes on the tip of each arm.","It walks on hundreds of little tube feet."]),
+A("Sea urchin","Sea urchin","🌰","invertebrate",null,["small"],["lines","plain"],["ocean","rocks"],true,["notlong"],["black","red"],["Its spines can break off and sting.","Its mouth is on the underside.","It scrapes algae off rocks with five teeth."]),
+A("Sand dollar","Sand dollar","🐚","invertebrate",null,["small"],["shell","lines"],["ocean"],false,["notlong"],["white","gray","brown"],["A living sand dollar is fuzzy and dark.","The white one you find on the beach is its skeleton.","A flower pattern marks its top."]),
+A("Barnacle","Barnacle","🐚","invertebrate",null,["small"],["shell"],["ocean","rocks"],false,["notlong"],["white","gray"],["A barnacle glues its head to a rock for life.","It kicks its feathery legs to catch food.","It grows on whales, boats, and piers."]),
+A("Coral","Coral","🪸","invertebrate",null,["small"],["dots","plain"],["ocean"],true,["notlong"],["orange","pink","white","many"],["Coral is an animal, not a rock or a plant.","Millions of tiny polyps build a reef.","Some can sting to catch tiny food."])
+];
+
+/* ============ STATE ============ */
+let step=0;
+const answers={};
+const picCache={};
+const app=document.getElementById("app");
+const tabsEl=document.getElementById("tabs");
+const overlay=document.getElementById("overlay");
+
+/* ============ WIKIPEDIA PHOTOS ============ */
+const DEV_MODE=/[?&]dev/.test(location.search);
+
+let photoFails=0, photoOK=0;
+
+async function trySummary(title){
+  const r=await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(title));
+  if(!r.ok) return null;
+  const d=await r.json();
+  return d.thumbnail&&d.thumbnail.source?d.thumbnail.source:null;
+}
+async function tryPageImage(title){
+  const u="https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1"+
+    "&prop=pageimages&piprop=thumbnail&pithumbsize=640&titles="+encodeURIComponent(title);
+  const r=await fetch(u);
+  if(!r.ok) return null;
+  const d=await r.json();
+  const pages=d.query&&d.query.pages?Object.values(d.query.pages):[];
+  const p=pages.find(x=>x.thumbnail&&x.thumbnail.source);
+  return p?p.thumbnail.source:null;
+}
+async function trySearch(q){
+  const u="https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*"+
+    "&generator=search&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=640&gsrsearch="+encodeURIComponent(q);
+  const r=await fetch(u);
+  if(!r.ok) return null;
+  const d=await r.json();
+  const pages=d.query&&d.query.pages?Object.values(d.query.pages):[];
+  const p=pages.find(x=>x.thumbnail&&x.thumbnail.source);
+  return p?p.thumbnail.source:null;
+}
+
+/* Returns an ordered list of candidate URLs. Every candidate is a URL Wikipedia
+   actually handed us, so none of them are guessed sizes. */
+async function getPic(title,backup){
+  if(picCache[title]!==undefined) return picCache[title];
+  const out=[];
+  const add=u=>{ if(u&&out.indexOf(u)<0) out.push(u); };
+  try{ add(await tryPageImage(title)); }catch(e){}
+  try{ add(await trySummary(title)); }catch(e){}
+  if(!out.length&&backup){ try{ add(await trySearch(backup)); }catch(e){} }
+  picCache[title]=out;
+  return out;
+}
+function fillPic(el,title,emoji,backup){
+  el.textContent=emoji||"🐾";
+  getPic(title,backup).then(list=>{
+    if(!list.length){ photoFails++; if(DEV_MODE) console.warn("no photo:",title); return; }
+    let i=0;
+    (function next(){
+      if(i>=list.length){ photoFails++; if(DEV_MODE) console.warn("all urls failed:",title,list); return; }
+      const url=list[i++];
+      const img=new Image();
+      img.alt=title;
+      img.onload=()=>{ photoOK++; el.textContent=""; el.appendChild(img); };
+      img.onerror=next;
+      img.src=url;
+    })();
+  });
+}
+
+/* ============ PATTERN SWATCHES ============ */
+function patternSVG(kind){
+  const g="#2E7D5B", p="#F2E7C9", i="#17332E";
+  const box=`<svg viewBox="0 0 120 90" width="100%" height="100%" aria-hidden="true">`;
+  const bg=`<rect width="120" height="90" fill="${p}"/>`;
+  let m="";
+  if(kind==="splotches"){
+    m=`<ellipse cx="30" cy="26" rx="17" ry="13" fill="${g}"/><ellipse cx="78" cy="20" rx="13" ry="11" fill="${g}"/>
+       <ellipse cx="55" cy="58" rx="20" ry="15" fill="${g}"/><ellipse cx="98" cy="62" rx="12" ry="14" fill="${g}"/>
+       <ellipse cx="16" cy="70" rx="12" ry="10" fill="${g}"/>`;
+  }else if(kind==="lines"){
+    m=`<rect x="8" y="0" width="14" height="90" fill="${i}"/><rect x="38" y="0" width="14" height="90" fill="${i}"/>
+       <rect x="68" y="0" width="14" height="90" fill="${i}"/><rect x="98" y="0" width="14" height="90" fill="${i}"/>`;
+  }else if(kind==="dots"){
+    let d="";
+    for(let y=16;y<90;y+=24){ for(let x=14;x<120;x+=24){ d+=`<circle cx="${x+((y/24)%2?10:0)}" cy="${y}" r="7" fill="${i}"/>`; } }
+    m=d;
+  }else if(kind==="shell"){
+    m=`<circle cx="60" cy="45" r="38" fill="${g}"/>
+       <path d="M60 7 L60 83 M22 45 L98 45 M33 18 L87 72 M87 18 L33 72" stroke="${p}" stroke-width="5"/>
+       <circle cx="60" cy="45" r="13" fill="${p}"/><circle cx="60" cy="45" r="6" fill="${g}"/>`;
+  }else if(kind==="x"){
+    m=`<g stroke="${i}" stroke-width="8" stroke-linecap="round">
+       <path d="M14 16 L44 46 M44 16 L14 46"/><path d="M74 16 L104 46 M104 16 L74 46"/>
+       <path d="M44 54 L74 84 M74 54 L44 84"/></g>`;
+  }else{
+    m=`<rect width="120" height="90" fill="${g}"/>`;
+  }
+  return box+bg+m+`</svg>`;
+}
+
+/* ============ RENDER QUESTIONS ============ */
+/* Only the questions that apply to this animal (reptile kind appears for reptiles) */
+function activeQs(){
+  return QUESTIONS.filter(q=>!q.when||answers[q.when.key]===q.when.val);
+}
+
+function renderTabs(){
+  const list=activeQs();
+  tabsEl.innerHTML="";
+  list.forEach((q,idx)=>{
+    const t=document.createElement("div");
+    const val=answers[q.key];
+    const filled=Array.isArray(val)?val.length>0:!!val;
+    t.className="tab"+(filled?" done":"")+(idx===step?" now":"");
+    let label="—";
+    if(filled){
+      label=Array.isArray(val)
+        ? val.map(v=>(q.opts.find(o=>o.v===v)||{}).l).join(", ")
+        : (q.opts.find(o=>o.v===val)||{}).l;
+    }
+    t.innerHTML=`<b>${q.tab.toUpperCase()}</b><i>${label}</i>`;
+    tabsEl.appendChild(t);
+  });
+}
+
+function renderQuestion(){
+  const list=activeQs();
+  if(step>=list.length){ renderResults(); return; }
+  const q=list[step];
+  renderTabs();
+  const wrapEl=document.createElement("div");
+  wrapEl.className="stage fade";
+  wrapEl.innerHTML=`<div class="qhead">
+      <div class="qnum">QUESTION ${step+1} OF ${list.length}</div>
+      <h1>${q.title}</h1><p class="hint">${q.hint}</p>
+    </div>`;
+  const grid=document.createElement("div");
+  grid.className="grid"+(q.style==="two"?" two":"")+(q.style==="color"?" swatches":"")+(q.style==="photo"?" wide":"");
+
+  const picked=q.multi?(Array.isArray(answers[q.key])?answers[q.key].slice():[]):null;
+
+  q.opts.forEach(o=>{
+    const b=document.createElement("button");
+    b.type="button"; b.className="opt";
+    if(q.style==="photo"){
+      const th=document.createElement("div"); th.className="thumb";
+      fillPic(th,o.wiki,o.e,o.l);
+      b.appendChild(th);
+    }else if(q.style==="pattern"){
+      const th=document.createElement("div"); th.className="thumb";
+      th.innerHTML=patternSVG(o.v);
+      b.appendChild(th);
+    }else if(q.style==="size"){
+      const v=document.createElement("div"); v.className="sizeviz";
+      v.innerHTML=`<div class="blob" style="width:${o.d}px;height:${o.d}px"></div><span style="font-size:26px">${o.e}</span>`;
+      b.appendChild(v);
+    }else if(q.style==="length"){
+      const v=document.createElement("div"); v.className="ruler";
+      v.innerHTML=`<i style="width:${o.p}%"></i>`;
+      b.appendChild(v);
+    }else if(q.style==="color"){
+      const v=document.createElement("div"); v.className="chip";
+      v.style.background=o.c;
+      b.appendChild(v);
+    }else{
+      const v=document.createElement("div");
+      v.style.fontSize="38px"; v.textContent=o.e||"";
+      b.appendChild(v);
+    }
+    const lab=document.createElement("div");
+    lab.innerHTML=o.l+(o.sub?`<div class="sub">${o.sub}</div>`:"");
+    b.appendChild(lab);
+
+    if(q.multi){
+      const mark=()=>{
+        const on=picked.indexOf(o.v)>=0;
+        b.classList.toggle("picked",on);
+        b.setAttribute("aria-pressed",on?"true":"false");
+      };
+      mark();
+      b.addEventListener("click",()=>{
+        const i=picked.indexOf(o.v);
+        i>=0?picked.splice(i,1):picked.push(o.v);
+        answers[q.key]=picked.slice();
+        mark(); renderTabs();
+        doneBtn.disabled=picked.length===0;
+        doneBtn.textContent=picked.length?`Done — ${picked.length} picked ✓`:"Pick at least one color";
+      });
+    }else{
+      b.addEventListener("click",()=>{
+        answers[q.key]=o.v;
+        // choosing a different type clears any reptile follow-up
+        if(q.key==="type"&&o.v!=="reptile") delete answers.reptileKind;
+        step++;
+        renderQuestion();
+        window.scrollTo({top:0,behavior:"smooth"});
+      });
+    }
+    grid.appendChild(b);
+  });
+  wrapEl.appendChild(grid);
+
+  let doneBtn=null;
+  if(q.multi){
+    doneBtn=document.createElement("button");
+    doneBtn.type="button"; doneBtn.className="again";
+    doneBtn.disabled=picked.length===0;
+    doneBtn.textContent=picked.length?`Done — ${picked.length} picked ✓`:"Pick at least one color";
+    doneBtn.addEventListener("click",()=>{
+      if(!picked.length) return;
+      step++; renderQuestion();
+      window.scrollTo({top:0,behavior:"smooth"});
+    });
+    wrapEl.appendChild(doneBtn);
+  }
+
+  if(step>0){
+    const back=document.createElement("button");
+    back.type="button"; back.className="back"; back.textContent="← Go back one question";
+    back.addEventListener("click",()=>{
+      step--;
+      const prev=activeQs()[step];
+      if(prev) delete answers[prev.key];
+      renderQuestion();
+    });
+    wrapEl.appendChild(back);
+  }
+  app.innerHTML=""; app.appendChild(wrapEl);
+}
+
+/* ============ SCORING ============ */
+function nearScore(list,pick,order){
+  if(list.includes(pick)) return 1;
+  const pi=order.indexOf(pick);
+  let best=0;
+  list.forEach(v=>{
+    const d=Math.abs(order.indexOf(v)-pi);
+    if(d===1) best=Math.max(best,.5);
+  });
+  return best;
+}
+/* Type (and reptile kind) are hard filters — a bird answer never returns a mammal. */
+function passesFilters(a){
+  if(a.t!==answers.type) return false;
+  if(answers.reptileKind && a.sub!==answers.reptileKind) return false;
+  return true;
+}
+function scoreAnimal(a){
+  const asked=activeQs();
+  let s=0;
+  // filtered questions are matched by definition
+  asked.forEach(q=>{ if(q.filter) s+=1; });
+  s+=nearScore(a.sz,answers.size,SIZES);
+  if(a.pat.includes(answers.pattern)) s+=1;
+  if(a.hab.includes(answers.habitat)) s+=1;
+  if((answers.venom==="yes")===a.ven) s+=1;
+  s+=nearScore(a.len,answers.length,LENS);
+  const picks=Array.isArray(answers.color)?answers.color:[answers.color];
+  const hit=picks.filter(c=>a.col.includes(c)).length;
+  s+=picks.length?hit/picks.length:0;
+  return {score:s,total:asked.length};
+}
+
+/* ============ RESULTS ============ */
+function labelFor(key,val){
+  const q=QUESTIONS.find(x=>x.key===key);
+  if(!q) return "—";
+  if(Array.isArray(val)) return val.map(v=>(q.opts.find(x=>x.v===v)||{}).l).join(", ");
+  const o=q.opts.find(x=>x.v===val);
+  return o?o.l:"—";
+}
+
+const CUTOFF=75;
+
+function renderResults(loose){
+  renderTabs();
+  const scored=ANIMALS.filter(passesFilters).map(a=>{
+    const r=scoreAnimal(a);
+    return {a,pct:Math.round(r.score/r.total*100)};
+  }).sort((x,y)=>y.pct-x.pct);
+
+  const strong=scored.filter(m=>m.pct>=CUTOFF);
+  const show=(loose?scored:strong).slice(0,12);
+
+  const el=document.createElement("div");
+  el.className="results fade";
+  el.innerHTML=`<div class="qhead">
+      <div class="qnum">FIELD REPORT</div>
+      <h1>${show.length?"Here is what it might be":"No good match yet"}</h1>
+      <p class="hint">${show.length?"Tap an animal to read facts about it.":"Nothing in the notebook matches all of your answers."}</p>
+    </div>`;
+
+  const layout=document.createElement("div");
+  layout.className="rlayout";
+
+  const tag=document.createElement("div");
+  tag.className="tag";
+  tag.innerHTML=`<h2>WHAT YOU SAW</h2><dl>`+
+    activeQs().map(q=>`<div class="row"><dt>${q.tab.toUpperCase()}</dt><dd>${labelFor(q.key,answers[q.key])}</dd></div>`).join("")+
+    `</dl>`;
+  layout.appendChild(tag);
+
+  const right=document.createElement("div");
+  if(show.length){
+    const list=document.createElement("div");
+    list.className="matchlist";
+    show.forEach(({a,pct})=>{
+      const card=document.createElement("button");
+      card.type="button"; card.className="card";
+      const pic=document.createElement("div"); pic.className="pic";
+      fillPic(pic,a.w,a.e,a.n);
+      card.appendChild(pic);
+      const body=document.createElement("div"); body.className="body";
+      const cls=pct>=90?"":(pct>=CUTOFF?" mid":" low");
+      body.innerHTML=`<div class="nm">${a.n}</div>
+        <span class="fit${cls}">${pct}% match</span>
+        ${a.ven?'<div class="venomtag">⚠️ Do not touch</div>':''}`;
+      card.appendChild(body);
+      card.addEventListener("click",()=>openModal(a));
+      list.appendChild(card);
+    });
+    right.appendChild(list);
+  }else{
+    const empty=document.createElement("div");
+    empty.style.cssText="background:#fff;border:3px dashed #17332E;border-radius:18px;padding:20px;text-align:center;font-size:18px;line-height:1.5";
+    empty.innerHTML=`<div style="font-size:46px">🔍</div>
+      <p style="margin:6px 0 0"><b>Great find!</b> This critter does not match anything in the notebook closely enough.</p>
+      <p style="margin:8px 0 0;color:#5E5240;font-size:16px">Try going back and changing one answer, or peek at the closest guesses.</p>`;
+    const peek=document.createElement("button");
+    peek.type="button"; peek.className="again"; peek.textContent="👀 Show closest guesses anyway";
+    peek.addEventListener("click",()=>renderResults(true));
+    empty.appendChild(peek);
+    right.appendChild(empty);
+  }
+  layout.appendChild(right);
+  el.appendChild(layout);
+
+  const again=document.createElement("button");
+  again.type="button"; again.className="again"; again.textContent="↺ Find another critter";
+  again.addEventListener("click",reset);
+  el.appendChild(again);
+
+  const note=document.createElement("p");
+  note.className="note";
+  note.textContent=loose
+    ? "These are under a 75% match, so they are rough guesses only."
+    : "Only matches of 75% or better are shown. Show a grown-up before you get close.";
+  el.appendChild(note);
+
+  app.innerHTML=""; app.appendChild(el);
+}
+
+/* ============ POPUP ============ */
+const KINDS={fish:"FISH",amphibian:"AMPHIBIAN",invertebrate:"INVERTEBRATE",mammal:"MAMMAL",bird:"BIRD",reptile:"REPTILE"};
+let lastFocus=null;
+function openModal(a){
+  lastFocus=document.activeElement;
+  document.getElementById("mName").textContent=a.n;
+  document.getElementById("mKind").textContent=KINDS[a.t]+(a.sub?" · "+labelFor("reptileKind",a.sub).toUpperCase():"")+" · "+a.hab.map(h=>labelFor("habitat",h)).join(" · ");
+  const pic=document.getElementById("mPic");
+  pic.innerHTML=""; fillPic(pic,a.w,a.e,a.n);
+  const ul=document.getElementById("mFacts");
+  ul.innerHTML=a.facts.map(f=>`<li>${f}</li>`).join("");
+  document.getElementById("mWarn").innerHTML=a.ven
+    ? '<div class="warn">⚠️ This animal has venom or poison. Look with your eyes only — never touch it.</div>'
+    : '<div class="warn" style="background:#E7F3EC;border-color:#2E7D5B;color:#1F5C42">🌿 Wild animals like their space. Watch quietly and do not touch.</div>';
+  overlay.classList.add("open");
+  document.getElementById("closeBtn").focus();
+}
+function closeModal(){
+  overlay.classList.remove("open");
+  if(lastFocus) lastFocus.focus();
+}
+document.getElementById("closeBtn").addEventListener("click",closeModal);
+overlay.addEventListener("click",e=>{if(e.target===overlay) closeModal()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&overlay.classList.contains("open")) closeModal()});
+
+/* ============ RESET ============ */
+function reset(){
+  step=0;
+  Object.keys(answers).forEach(k=>delete answers[k]);
+  closeModal();
+  renderQuestion();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+document.getElementById("resetBtn").addEventListener("click",reset);
+
+/* ============ DEV: photo audit (open with ?dev) ============ */
+if(DEV_MODE){
+  const btn=document.createElement("button");
+  btn.type="button"; btn.className="reset";
+  btn.style.background="#C8447A"; btn.style.color="#fff"; btn.style.marginRight="8px";
+  btn.textContent="🔍 Check photos";
+  document.querySelector(".top").insertBefore(btn,document.getElementById("resetBtn"));
+  btn.addEventListener("click",async()=>{
+    btn.textContent="Checking…"; btn.disabled=true;
+    const jobs=[];
+    ANIMALS.forEach(a=>jobs.push({t:a.w,b:a.n}));
+    QUESTIONS.forEach(q=>q.opts.forEach(o=>{if(o.wiki)jobs.push({t:o.wiki,b:o.l})}));
+    const misses=[];
+    for(const j of jobs){ const list=await getPic(j.t,j.b); if(!list||!list.length) misses.push(j.b+"  →  "+j.t); }
+    btn.textContent="🔍 Check photos"; btn.disabled=false;
+    const ok=jobs.length-misses.length;
+    alert("Photos found: "+ok+" of "+jobs.length+
+      (misses.length?"\n\nNo photo for:\n"+misses.join("\n"):"\n\nEvery photo loaded."));
+    console.table(jobs.map(j=>({item:j.b,title:j.t,photo:(picCache[j.t]||[])[0]||"— none —"})));
+  });
+}
+
+/* ============ NETWORK PROBE ============ */
+const netbar=document.getElementById("netbar");
+async function probeNet(){
+  netbar.style.display="none";
+  try{
+    const r=await fetch("https://en.wikipedia.org/api/rest_v1/page/summary/Coyote");
+    if(!r.ok) throw 0;
+    const d=await r.json();
+    if(!d.thumbnail) throw 0;
+  }catch(e){
+    netbar.style.display="block";
+    netbar.firstElementChild.textContent="Photos are turned off right now.";
+    return;
+  }
+  setTimeout(()=>{
+    if(photoFails>0 && photoOK===0){
+      netbar.style.display="block";
+      netbar.firstElementChild.textContent="Photos couldn't load ("+photoFails+" failed).";
+    }
+  },6000);
+}
+document.getElementById("retryNet").addEventListener("click",()=>{
+  Object.keys(picCache).forEach(k=>delete picCache[k]); photoFails=0; photoOK=0;
+  probeNet().then(()=>{ step<QUESTIONS.length?renderQuestion():renderResults(); });
+});
+probeNet();
+
+renderQuestion();
+</script>
+</body>
+</html>
